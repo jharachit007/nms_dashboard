@@ -11,6 +11,7 @@ from app.repositories.learning_repository import IncidentLearningRepository
 from app.services.audit_service import AuditService
 from app.services.learning_signal_builder import LearningSignalBuilder
 from app.services.rbac import ensure_role
+from app.services.redis_client import enqueue_embedding_job
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,9 @@ class FeedbackService:
             }
         )
         learning_signal = self.learning_builder.upsert_from_feedback(alert, recommendation, feedback)
+        enqueue_embedding_job(
+            {"source": "feedback", "alert_id": submission.alert_id, "feedback_id": feedback.id}
+        )
         self.audit_service.record(
             action="feedback_submission",
             user_id=submission.user_id,

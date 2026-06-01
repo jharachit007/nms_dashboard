@@ -9,6 +9,7 @@ from app.api.middleware import RequestLoggingMiddleware
 from app.api.operator_routes import router as operator_router
 from app.api.ops_routes import router as ops_router
 from app.api.routes import router
+from app.api.search_routes import router as search_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.services.background_jobs import get_background_job_manager
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(router, prefix=settings.api_prefix)
     app.include_router(operator_router, prefix=settings.api_prefix)
     app.include_router(ops_router, prefix=settings.api_prefix)
+    app.include_router(search_router, prefix=settings.api_prefix)
 
     frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
     if frontend_dir.exists():

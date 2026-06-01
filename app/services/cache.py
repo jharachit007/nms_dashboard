@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from threading import RLock
 from typing import Generic, TypeVar
 
+from app.services.redis_client import get_redis_client
+
 T = TypeVar("T")
 
 
@@ -18,6 +20,10 @@ class TTLCache:
         self._lock = RLock()
 
     def get(self, key: str):
+        redis_value = get_redis_client().get_json(key)
+        if redis_value is not None:
+            return redis_value
+
         now = time.monotonic()
         with self._lock:
             entry = self._entries.get(key)
@@ -29,6 +35,7 @@ class TTLCache:
             return entry.value
 
     def set(self, key: str, value, ttl_seconds: int) -> None:
+        get_redis_client().set_json(key, value, ttl_seconds)
         with self._lock:
             self._entries[key] = CacheEntry(
                 value=value,

@@ -5,6 +5,7 @@ from app.models.audit import AuditLog
 from app.models.chat import ChatMessage, ChatSession
 from app.models.event import Event
 from app.models.feedback import Feedback
+from app.models.incident_embedding import IncidentEmbedding
 from app.models.incident_learning import IncidentLearningStore
 from app.models.llm_response import LLMResponse
 from app.models.node import Node
@@ -19,6 +20,7 @@ __all__ = [
     "ChatMessage",
     "ChatSession",
     "Feedback",
+    "IncidentEmbedding",
     "IncidentLearningStore",
     "LLMResponse",
     "Event",

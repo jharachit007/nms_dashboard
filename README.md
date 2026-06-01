@@ -106,6 +106,17 @@ Operational endpoints:
 - `POST /api/v1/ops/ingestion/enqueue`
 - `POST /api/v1/ops/ai/enqueue`
 
+
+pgvector + Redis integration scope currently includes:
+
+- `pgvector` extension migration and `incident_embeddings` semantic memory table
+- Sanitized deterministic embedding generation for alerts and incident context
+- Redis-backed hot cache layered under the in-memory TTL cache
+- Redis list integration for `embedding_queue` and `ai_processing_queue` with safe fallback
+- Async embedding worker path integrated into the existing background job manager
+- Similar incident search API at `/api/v1/search/similar-incidents`
+- AI recommendation cache/enrichment hook that falls back to normal context if Redis or pgvector is unavailable
+
 Run tests:
 
 ```bash

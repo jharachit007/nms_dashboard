@@ -10,8 +10,10 @@ from app.core.config import Settings
 from app.db.session import SessionLocal
 from app.services.alert_processor import AlertProcessorService
 from app.services.cache import app_cache
+from app.services.embedding_service import EmbeddingWorkerService
 from app.services.ingestion_service import OpenNMSIngestionService
 from app.services.metrics import metrics_registry
+from app.services.redis_client import get_redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,7 @@ logger = logging.getLogger(__name__)
 class JobType(StrEnum):
     INGESTION_SYNC = "ingestion_sync"
     AI_PROCESSING = "ai_processing"
+    EMBEDDING_PROCESSING = "embedding_processing"
 
 
 @dataclass
@@ -62,18 +65,32 @@ class BackgroundJobManager:
         self._worker_task = None
         self._scheduler_task = None
 
+    async def _enqueue_local(self, job_type: JobType) -> JobStatus:
+        job = JobStatus(job_id=str(uuid4()), job_type=job_type)
+        await self.queue.put(job)
+        self.statuses[job.job_id] = job
+        metrics_registry.set_gauge("background_queue_depth", self.queue.qsize())
+        return job
+
     async def enqueue(self, job_type: JobType, force: bool = False) -> JobStatus:
         now = time.monotonic()
         last = self._last_enqueued_at.get(job_type, 0)
         if not force and now - last < self.settings.ingestion_job_rate_limit_seconds:
             raise ValueError(f"job rate limited: {job_type.value}")
 
-        job = JobStatus(job_id=str(uuid4()), job_type=job_type)
-        await self.queue.put(job)
-        self.statuses[job.job_id] = job
+        job = await self._enqueue_local(job_type)
+        self._enqueue_redis(job)
         self._last_enqueued_at[job_type] = now
-        metrics_registry.set_gauge("background_queue_depth", self.queue.qsize())
         return job
+
+    def _enqueue_redis(self, job: JobStatus) -> None:
+        queue_name = None
+        if job.job_type == JobType.AI_PROCESSING:
+            queue_name = self.settings.redis_queue_ai_processing
+        elif job.job_type == JobType.EMBEDDING_PROCESSING:
+            queue_name = self.settings.redis_queue_embedding
+        if queue_name:
+            get_redis_client().lpush_json(queue_name, {"job_id": job.job_id, "job_type": job.job_type.value})
 
     def snapshot(self) -> dict:
         statuses = sorted(self.statuses.values(), key=lambda item: item.created_at, reverse=True)[:25]
@@ -102,7 +119,22 @@ class BackgroundJobManager:
                 pass
             except Exception:
                 logger.exception("failed to enqueue scheduled ingestion")
+            await self._poll_redis_queues()
             await asyncio.sleep(self.settings.ingestion_interval_seconds)
+
+    async def _poll_redis_queues(self) -> None:
+        redis_client = get_redis_client()
+        queue_map = {
+            self.settings.redis_queue_embedding: JobType.EMBEDDING_PROCESSING,
+            self.settings.redis_queue_ai_processing: JobType.AI_PROCESSING,
+        }
+        for queue_name, job_type in queue_map.items():
+            for _ in range(5):
+                payload = redis_client.rpop_json(queue_name)
+                if not payload:
+                    break
+                await self._enqueue_local(job_type)
+
 
     async def _worker_loop(self) -> None:
         while not self._stopping.is_set():
@@ -153,6 +185,13 @@ class BackgroundJobManager:
                 metrics_registry.set_gauge("ingestion_failure_rate", failures / max(1, len(result.resources)))
                 app_cache.invalidate_prefix("alerts:")
                 app_cache.invalidate_prefix("recommendation:")
+                try:
+                    get_redis_client().lpush_json(
+                        self.settings.redis_queue_embedding,
+                        {"source": "ingestion", "job_type": JobType.EMBEDDING_PROCESSING.value},
+                    )
+                except Exception:
+                    logger.exception("embedding_enqueue_after_ingestion_failed")
                 return
 
             if job.job_type == JobType.AI_PROCESSING:
@@ -162,6 +201,20 @@ class BackgroundJobManager:
                 metrics_registry.increment("ai_recommendations_generated_count", result.processed_count)
                 metrics_registry.increment("ai_recommendation_error_count", result.error_count)
                 app_cache.invalidate_prefix("recommendation:")
+                try:
+                    get_redis_client().lpush_json(
+                        self.settings.redis_queue_embedding,
+                        {"source": "ai_processing", "job_type": JobType.EMBEDDING_PROCESSING.value},
+                    )
+                except Exception:
+                    logger.exception("embedding_enqueue_after_ai_failed")
+                return
+
+            if job.job_type == JobType.EMBEDDING_PROCESSING:
+                processed = EmbeddingWorkerService(db, self.settings).process_pending_embeddings(
+                    limit=self.settings.embedding_batch_size
+                )
+                metrics_registry.increment("embeddings_generated_count", processed)
                 return
 
             raise ValueError(f"unsupported job type: {job.job_type}")

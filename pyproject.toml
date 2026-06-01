@@ -15,6 +15,7 @@ dependencies = [
     "psycopg[binary]",
     "pydantic-settings",
     "requests",
+    "redis",
     "sqlalchemy",
     "uvicorn[standard]",
 ]
