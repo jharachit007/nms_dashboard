@@ -21,6 +21,7 @@ from app.repositories.event_repository import EventRepository
 from app.repositories.node_repository import NodeRepository
 from app.repositories.outage_repository import OutageRepository
 from app.services.audit_service import AuditService
+from app.services.redis_client import enqueue_embedding_job
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,7 @@ class OpenNMSIngestionService:
             "events": self.sync_events(),
             "outages": self.sync_outages(),
         }
+        enqueue_embedding_job({"source": "ingestion", "resource": "alarms"})
         return IngestionRunResult(resources=results)
 
     def sync_nodes(self) -> IngestionResourceResult:

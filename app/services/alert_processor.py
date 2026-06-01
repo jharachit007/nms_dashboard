@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 from app.core.constants import AlertSeverity
 from app.models.alert import Alert
 from app.repositories.ai_recommendation_repository import AIRecommendationRepository
@@ -11,7 +11,10 @@ from app.repositories.alert_repository import AlertRepository
 from app.services.ai_provider import AIProvider, build_ai_provider
 from app.services.alert_context_builder import AlertContextBuilder
 from app.services.audit_service import AuditService
+from app.services.cache import app_cache
 from app.services.recommendation_engine import RecommendationEngine, build_recommendation_prompt
+from app.services.redis_client import enqueue_embedding_job
+from app.services.semantic_search_service import SemanticSearchService
 
 logger = logging.getLogger(__name__)
 
@@ -86,33 +89,77 @@ class AlertProcessorService:
 
     def _process_alert(self, alert: Alert):
         context = self.context_builder.build(alert.id)
-        prompt = build_recommendation_prompt(context.sanitized_text)
-        response = self.recommendation_engine.generate(context)
-        recommendation = self.recommendation_repository.create_once_for_alert(
-            {
+        cache_key = f"ai:{alert.id}"
+        cached_response = app_cache.get(cache_key)
+        if cached_response is not None:
+            recommendation_values = {
+                "alert_id": alert.id,
+                "input_context_hash": context.context_hash,
+                "provider": cached_response.get("provider", "cache"),
+                "model_name": cached_response.get("model_name"),
+                "prompt_sanitized": cached_response.get("prompt_sanitized", "cached"),
+                "sanitized_context": context.sanitized_context,
+                "recommendation": cached_response["recommendation"],
+                "response_text": cached_response.get("response_text", ""),
+                "confidence_score": cached_response.get("confidence_score"),
+                "advisory_only": True,
+            }
+        else:
+            similar_context = self._similar_incident_context(alert.id)
+            sanitized_text = context.sanitized_text
+            if similar_context:
+                sanitized_text = f"{context.sanitized_text}\n\nSimilar historical incidents (sanitized):\n{similar_context}"
+            prompt = build_recommendation_prompt(sanitized_text)
+            response = self.provider.generate(prompt)
+            recommendation_values = {
                 "alert_id": alert.id,
                 "input_context_hash": context.context_hash,
                 "provider": response.provider,
                 "model_name": response.model_name,
                 "prompt_sanitized": prompt,
-                "sanitized_context": context.sanitized_context,
+                "sanitized_context": {
+                    **context.sanitized_context,
+                    "similar_incidents": similar_context,
+                },
                 "recommendation": response.recommendation,
                 "response_text": response.response_text,
                 "confidence_score": response.confidence_score,
                 "advisory_only": True,
             }
+            app_cache.set(cache_key, recommendation_values, getattr(self, "settings", get_settings()).redis_ai_ttl_seconds)
+
+        recommendation = self.recommendation_repository.create_once_for_alert(
+            recommendation_values
         )
         if recommendation is None:
             return self.recommendation_repository.get_by_alert_id(alert.id)
 
+        enqueue_embedding_job({"source": "ai_recommendation", "alert_id": alert.id})
         self._record_audit(
             alert.id,
             success=True,
-            provider=response.provider,
+            provider=recommendation_values["provider"],
             context_hash=context.context_hash,
         )
         self.db.commit()
         return recommendation
+
+    def _similar_incident_context(self, alert_id: int) -> str:
+        try:
+            results = SemanticSearchService(self.db, getattr(self, "settings", get_settings())).search_by_alert(alert_id, limit=5)
+        except Exception:
+            logger.exception("ai_semantic_context_failed")
+            return ""
+        lines = []
+        for item in results:
+            if item.get("alert_id") == alert_id:
+                continue
+            lines.append(
+                f"alert_id={item.get('alert_id')} resolution={item.get('resolution_status')} "
+                f"feedback={item.get('feedback_type')} distance={item.get('distance')} "
+                f"content={item.get('content_text')}"
+            )
+        return "\n".join(lines[:5])
 
     def _is_critical(self, alert: Alert) -> bool:
         return alert.severity == AlertSeverity.CRITICAL.value

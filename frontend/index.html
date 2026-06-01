@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenNMS AI NOC</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+  </head>
+  <body>
+    <main>
+      <section id="login-view" class="login-card">
+        <h1>OpenNMS AI NOC</h1>
+        <p class="muted">LDAP login required</p>
+        <form id="login-form">
+          <label>
+            Username
+            <input id="username" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input id="password" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">Login</button>
+        </form>
+        <p id="login-error" class="error" role="alert"></p>
+      </section>
+
+      <section id="app-view" class="hidden">
+        <header class="topbar">
+          <div>
+            <h1>Critical Alerts</h1>
+            <p id="session-label" class="muted"></p>
+          </div>
+          <div class="top-actions">
+            <span id="refresh-status" class="muted"></span>
+            <button id="refresh-btn" type="button">Refresh</button>
+            <button id="logout-btn" type="button" class="secondary">Logout</button>
+          </div>
+        </header>
+
+        <section class="filters" aria-label="Alert filters">
+          <label>
+            Severity
+            <select id="severity-filter">
+              <option value="CRITICAL" selected>CRITICAL</option>
+              <option value="MAJOR">MAJOR</option>
+              <option value="MINOR">MINOR</option>
+              <option value="WARNING">WARNING</option>
+            </select>
+          </label>
+          <label>Operator <input id="operator-filter" placeholder="operator" /></label>
+          <label>Circle <input id="circle-filter" placeholder="circle" /></label>
+          <label>Server type <input id="server-filter" placeholder="server_type" /></label>
+        </section>
+
+        <div class="layout">
+          <section class="panel list-panel">
+            <div class="panel-title">
+              <h2>Needs attention now</h2>
+              <span id="alert-count" class="badge">0</span>
+            </div>
+            <div id="alert-list" class="alert-list"></div>
+          </section>
+
+          <section class="panel detail-panel">
+            <div id="empty-detail" class="empty">Select an alert to view details.</div>
+            <article id="alert-detail" class="hidden">
+              <div class="detail-header">
+                <div>
+                  <h2 id="detail-title"></h2>
+                  <p id="detail-meta" class="muted"></p>
+                </div>
+                <span id="detail-status" class="badge"></span>
+              </div>
+
+              <section>
+                <h3>Alert summary</h3>
+                <p id="detail-summary"></p>
+                <details>
+                  <summary>Advanced node metadata</summary>
+                  <dl id="node-details"></dl>
+                </details>
+              </section>
+
+              <section>
+                <h3>Timeline</h3>
+                <ul id="timeline" class="timeline"></ul>
+              </section>
+
+              <section>
+                <h3>AI recommendation</h3>
+                <div id="ai-box" class="ai-box muted">No recommendation yet.</div>
+              </section>
+
+              <section id="feedback-section">
+                <h3>Feedback</h3>
+                <div id="readonly-feedback" class="muted hidden">Read-only role: feedback disabled.</div>
+                <form id="feedback-form" class="feedback-form">
+                  <div class="button-row">
+                    <button type="button" id="helpful-btn" data-feedback="Helpful">Helpful</button>
+                    <button type="button" id="not-helpful-btn" data-feedback="Not Helpful" class="secondary">
+                      Not Helpful
+                    </button>
+                  </div>
+                  <label>
+                    Resolution
+                    <select id="resolution-status">
+                      <option value="Resolved">Resolved</option>
+                      <option value="Not Resolved">Not Resolved</option>
+                    </select>
+                  </label>
+                  <label>
+                    Comments
+                    <textarea id="feedback-comments" rows="3" placeholder="Short operator note"></textarea>
+                  </label>
+                  <button type="submit">Save feedback</button>
+                </form>
+                <div id="feedback-history" class="history"></div>
+              </section>
+
+              <section id="chat-section">
+                <h3>Incident assistant</h3>
+                <div id="readonly-chat" class="muted hidden">Read-only role: chat disabled.</div>
+                <div id="chat-history" class="chat-history"></div>
+                <form id="chat-form" class="chat-form">
+                  <input id="chat-question" placeholder="Ask: What should I check next?" />
+                  <button type="submit">Ask</button>
+                </form>
+              </section>
+            </article>
+          </section>
+        </div>
+      </section>
+    </main>
+    <script src="/ui/app.js"></script>
+  </body>
+</html>

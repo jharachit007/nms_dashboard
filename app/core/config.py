@@ -56,6 +56,40 @@ class Settings(BaseSettings):
 
     llm_max_input_chars: int = 12_000
 
+    session_token_secret: str | None = Field(
+        default=None,
+        description="Optional HMAC secret for browser session tokens. A process-local secret is used if unset.",
+    )
+    session_token_ttl_seconds: int = 28_800
+
+    cache_alert_ttl_seconds: int = 20
+    cache_ai_ttl_seconds: int = 14_400
+    cache_node_ttl_seconds: int = 300
+
+    ingestion_interval_seconds: int = 60
+    ingestion_queue_max_size: int = 100
+    ingestion_worker_enabled: bool = True
+    ingestion_job_rate_limit_seconds: int = 10
+
+    ai_processing_interval_seconds: int = 30
+    ai_processing_batch_size: int = 25
+
+    request_log_enabled: bool = True
+
+    redis_enabled: bool = True
+    redis_url: str = "redis://localhost:6379/0"
+    redis_socket_timeout_seconds: float = 0.1
+    redis_alert_ttl_seconds: int = 60
+    redis_ai_ttl_seconds: int = 14_400
+    redis_node_ttl_seconds: int = 1_800
+    redis_queue_embedding: str = "embedding_queue"
+    redis_queue_ai_processing: str = "ai_processing_queue"
+
+    embedding_dimension: int = 1536
+    embedding_worker_enabled: bool = True
+    embedding_batch_size: int = 10
+    embedding_queue_poll_seconds: float = 2.0
+
 
 @lru_cache
 def get_settings() -> Settings:
