@@ -35,6 +35,16 @@ class Settings(BaseSettings):
     ldap_group_search_base: str | None = None
     ldap_default_role: UserRole = UserRole.NOC_VIEWER
 
+    opennms_base_url: str | None = Field(
+        default=None,
+        description="Base OpenNMS URL, for example https://opennms.internal/opennms.",
+    )
+    opennms_username: str | None = None
+    opennms_password: str | None = None
+    opennms_timeout_seconds: float = 15.0
+    opennms_max_retries: int = 3
+    opennms_backoff_factor: float = 0.5
+
     llm_max_input_chars: int = 12_000
 
 
