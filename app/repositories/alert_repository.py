@@ -2,6 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.core.constants import AlertSeverity
+from app.models.ai_recommendation import AIRecommendation
 from app.models.alert import Alert, AlertHistory
 from app.repositories.base import BaseRepository
 
@@ -31,6 +33,17 @@ class AlertRepository(BaseRepository[Alert]):
             .returning(Alert)
         )
         return self.db.execute(statement).scalar_one()
+
+    def list_unprocessed_critical(self, limit: int = 50) -> list[Alert]:
+        statement = (
+            select(Alert)
+            .outerjoin(AIRecommendation, AIRecommendation.alert_id == Alert.id)
+            .where(Alert.severity == AlertSeverity.CRITICAL.value)
+            .where(AIRecommendation.id.is_(None))
+            .order_by(Alert.last_event_time.desc().nullslast(), Alert.id.desc())
+            .limit(limit)
+        )
+        return list(self.db.scalars(statement).all())
 
     def add_history(self, history: AlertHistory) -> AlertHistory:
         self.db.add(history)
