@@ -65,6 +65,19 @@ LLM provider settings are environment-backed:
 - `LLM_TIMEOUT_SECONDS`
 - `LLM_MAX_INPUT_CHARS`
 
+
+Phase 4 scope currently includes:
+
+- Idempotent operator feedback submission linked to alerts and AI recommendations
+- Resolution outcome tracking (`Resolved` / `Not Resolved`) and usefulness tracking (`Helpful` / `Not Helpful`)
+- Structured incident learning store for future RAG, fine-tuning candidate review, and recommendation quality analysis
+- Lightweight advisory chat service with incident context retrieval
+- Chat context retrieval for node history, similar alerts, prior AI recommendations, and feedback history
+- Mandatory sanitization for chat inputs, retrieved context, and assistant responses
+- Service-level RBAC checks for feedback and chat operator actions
+
+Phase 4 does not perform model training. It only stores structured learning signals for future improvement workflows.
+
 Run tests:
 
 ```bash

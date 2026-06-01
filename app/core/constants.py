@@ -23,6 +23,27 @@ class UserRole(StrEnum):
     NOC_ADMIN = "noc-admin"
 
 
+class FeedbackType(StrEnum):
+    HELPFUL = "Helpful"
+    NOT_HELPFUL = "Not Helpful"
+
+
+class ResolutionStatus(StrEnum):
+    RESOLVED = "Resolved"
+    NOT_RESOLVED = "Not Resolved"
+
+
+class ChatRole(StrEnum):
+    USER = "user"
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
+
+
+class ChatSessionStatus(StrEnum):
+    ACTIVE = "ACTIVE"
+    CLOSED = "CLOSED"
+
+
 ROLE_HIERARCHY: dict[UserRole, set[UserRole]] = {
     UserRole.NOC_VIEWER: {UserRole.NOC_VIEWER},
     UserRole.NOC_OPERATOR: {UserRole.NOC_VIEWER, UserRole.NOC_OPERATOR},

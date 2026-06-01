@@ -47,6 +47,7 @@ class Alert(Base):
     history = relationship("AlertHistory", back_populates="alert", cascade="all, delete-orphan")
     feedback = relationship("Feedback", back_populates="alert")
     chat_messages = relationship("ChatMessage", back_populates="alert")
+    chat_sessions = relationship("ChatSession", back_populates="alert")
     llm_responses = relationship("LLMResponse", back_populates="alert")
     ai_recommendation = relationship(
         "AIRecommendation",
