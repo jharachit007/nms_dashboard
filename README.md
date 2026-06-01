@@ -78,6 +78,16 @@ Phase 4 scope currently includes:
 
 Phase 4 does not perform model training. It only stores structured learning signals for future improvement workflows.
 
+
+Phase 5 scope currently includes:
+
+- Minimal vanilla HTML/CSS/JavaScript NOC operator UI served from `/ui`
+- LDAP-backed login flow using a browser session token
+- Critical alert list with operator/circle/server type filters and 20-second auto-refresh
+- Alert detail view with timeline, AI recommendation, feedback, and chat panels
+- Role-aware UI rendering for viewer vs operator/admin actions
+- Minimal UI API routes for alerts, AI recommendations, feedback, and chat
+
 Run tests:
 
 ```bash

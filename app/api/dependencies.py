@@ -3,9 +3,11 @@ from collections.abc import Callable
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.config import Settings, get_settings
 from app.core.constants import ROLE_HIERARCHY, UserRole
 from app.db.session import get_db_session
 from app.services.auth_service import AuthenticatedUser
+from app.services.session_tokens import SessionTokenError, parse_session_token
 
 
 def get_db(db: Session = Depends(get_db_session)) -> Session:
@@ -13,13 +15,25 @@ def get_db(db: Session = Depends(get_db_session)) -> Session:
 
 
 def get_current_user(
+    authorization: str | None = Header(default=None),
     x_user: str | None = Header(default=None),
     x_roles: str | None = Header(default=None),
+    settings: Settings = Depends(get_settings),
 ) -> AuthenticatedUser:
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        try:
+            return parse_session_token(token, settings)
+        except SessionTokenError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid session token",
+            ) from exc
+
     if not x_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="authenticated user header is required",
+            detail="authenticated user header or bearer token is required",
         )
 
     roles = []

@@ -56,6 +56,12 @@ class Settings(BaseSettings):
 
     llm_max_input_chars: int = 12_000
 
+    session_token_secret: str | None = Field(
+        default=None,
+        description="Optional HMAC secret for browser session tokens. A process-local secret is used if unset.",
+    )
+    session_token_ttl_seconds: int = 28_800
+
 
 @lru_cache
 def get_settings() -> Settings:
