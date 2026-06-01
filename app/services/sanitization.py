@@ -14,8 +14,16 @@ class SanitizedText:
     truncated: bool
 
 
+def _mask_secret(match: re.Match) -> str:
+    value = match.group(2)
+    suffix = ""
+    if value and value[-1] in ".,!?":
+        suffix = value[-1]
+    return f"{match.group(1)}=[REDACTED]{suffix}"
+
+
 def sanitize_for_llm(value: str, max_chars: int) -> SanitizedText:
-    sanitized = _SECRET_PATTERN.sub(lambda match: f"{match.group(1)}=[REDACTED]", value)
+    sanitized = _SECRET_PATTERN.sub(_mask_secret, value)
     sanitized = _EMAIL_PATTERN.sub("[EMAIL]", sanitized)
     sanitized = _IPV4_PATTERN.sub("[IP]", sanitized)
 

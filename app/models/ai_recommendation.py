@@ -35,6 +35,8 @@ class AIRecommendation(Base):
     )
 
     alert = relationship("Alert", back_populates="ai_recommendation")
+    feedback = relationship("Feedback", back_populates="ai_recommendation")
+    chat_messages = relationship("ChatMessage", back_populates="ai_recommendation")
 
 
 Index("ix_ai_recommendations_alert_context", AIRecommendation.alert_id, AIRecommendation.input_context_hash)

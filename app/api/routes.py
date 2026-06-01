@@ -6,6 +6,7 @@ from app.api.schemas import HealthResponse, LoginRequest, LoginResponse
 from app.core.config import Settings, get_settings
 from app.services.audit_service import AuditService
 from app.services.auth_service import AuthenticationError, LDAPAuthService
+from app.services.session_tokens import create_session_token
 
 router = APIRouter()
 
@@ -56,4 +57,5 @@ def login(
         username=user.username,
         roles=user.roles,
         auth_mode="stub" if settings.ldap_stub_enabled else "ldap",
+        session_token=create_session_token(user, settings),
     )

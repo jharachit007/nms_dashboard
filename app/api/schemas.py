@@ -18,3 +18,4 @@ class LoginResponse(BaseModel):
     username: str
     roles: list[UserRole]
     auth_mode: str
+    session_token: str
