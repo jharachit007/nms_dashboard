@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opennms-ai-monitoring-mcp"
+version = "0.1.0"
+description = "OpenNMS AI Monitoring MCP backend foundation"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic",
+    "fastapi",
+    "ldap3",
+    "lxml",
+    "psycopg[binary]",
+    "pydantic-settings",
+    "requests",
+    "sqlalchemy",
+    "uvicorn[standard]",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx",
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
