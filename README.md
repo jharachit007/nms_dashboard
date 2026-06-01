@@ -42,6 +42,29 @@ OpenNMS credentials are read from environment-backed settings only:
 - `OPENNMS_MAX_RETRIES`
 - `OPENNMS_BACKOFF_FACTOR`
 
+
+Phase 3 scope currently includes:
+
+- Critical-only alert processor for AI recommendation generation
+- Context builder for alert, node, recent events, and alert history
+- Mandatory sanitization before any LLM provider call
+- Provider abstraction for mock, Ollama, OpenAI, and Anthropic
+- Advisory-only recommendation engine with structured outputs
+- `ai_recommendations` persistence with one recommendation per alert
+- Audit logging for AI recommendation generation
+
+LLM provider settings are environment-backed:
+
+- `LLM_PROVIDER` (`mock`, `ollama`, `openai`, or `anthropic`)
+- `LLM_MODEL_NAME`
+- `OLLAMA_BASE_URL`
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+- `ANTHROPIC_API_KEY`
+- `ANTHROPIC_BASE_URL`
+- `LLM_TIMEOUT_SECONDS`
+- `LLM_MAX_INPUT_CHARS`
+
 Run tests:
 
 ```bash
