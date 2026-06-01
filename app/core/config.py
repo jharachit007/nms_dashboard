@@ -62,6 +62,20 @@ class Settings(BaseSettings):
     )
     session_token_ttl_seconds: int = 28_800
 
+    cache_alert_ttl_seconds: int = 20
+    cache_ai_ttl_seconds: int = 14_400
+    cache_node_ttl_seconds: int = 300
+
+    ingestion_interval_seconds: int = 60
+    ingestion_queue_max_size: int = 100
+    ingestion_worker_enabled: bool = True
+    ingestion_job_rate_limit_seconds: int = 10
+
+    ai_processing_interval_seconds: int = 30
+    ai_processing_batch_size: int = 25
+
+    request_log_enabled: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

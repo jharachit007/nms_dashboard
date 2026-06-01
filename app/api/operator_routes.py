@@ -13,8 +13,10 @@ from app.models.alert import Alert, AlertHistory
 from app.models.chat import ChatMessage
 from app.models.feedback import Feedback
 from app.services.auth_service import AuthenticatedUser
+from app.services.cache import app_cache
 from app.services.chat_service import ChatRequest, ChatService
 from app.services.feedback_service import FeedbackService, FeedbackSubmission
+from app.services.metrics import metrics_registry
 from app.services.sanitization import sanitize_for_llm
 
 router = APIRouter()
@@ -63,9 +65,19 @@ def list_alerts(
     if server_type:
         statement = statement.where(Alert.node.has(server_type=server_type))
 
-    alerts = db.scalars(statement).all()
+    cache_key = f"alerts:{normalized_severity}:{operator or ''}:{circle or ''}:{server_type or ''}:{limit}:{offset}"
+    cached_items = app_cache.get(cache_key)
+    if cached_items is not None:
+        metrics_registry.increment("cache_hit_count")
+        items = cached_items
+    else:
+        metrics_registry.increment("cache_miss_count")
+        alerts = db.scalars(statement).all()
+        items = [_alert_summary(alert) for alert in alerts]
+        app_cache.set(cache_key, items, get_settings().cache_alert_ttl_seconds)
+    metrics_registry.set_gauge("active_alert_count", len(items) if normalized_severity == AlertSeverity.CRITICAL.value else 0)
     return {
-        "items": [_alert_summary(alert) for alert in alerts],
+        "items": items,
         "limit": limit,
         "offset": offset,
         "roles": [role.value for role in user.roles],
@@ -105,11 +117,20 @@ def get_ai_recommendation(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(get_current_user),
 ) -> dict:
+    cache_key = f"recommendation:{alert_id}"
+    cached = app_cache.get(cache_key)
+    if cached is not None:
+        metrics_registry.increment("cache_hit_count")
+        return {"recommendation": cached, "roles": [role.value for role in user.roles]}
+
+    metrics_registry.increment("cache_miss_count")
     recommendation = db.scalar(select(AIRecommendation).where(AIRecommendation.alert_id == alert_id))
     if recommendation is None:
         return {"recommendation": None, "roles": [role.value for role in user.roles]}
+    payload = _recommendation(recommendation)
+    app_cache.set(cache_key, payload, get_settings().cache_ai_ttl_seconds)
     return {
-        "recommendation": _recommendation(recommendation),
+        "recommendation": payload,
         "roles": [role.value for role in user.roles],
     }
 
@@ -150,6 +171,7 @@ def submit_feedback(
             comments=payload.comments,
         )
     )
+    app_cache.invalidate_prefix(f"recommendation:{payload.alert_id}")
     return {"feedback": _feedback(feedback)}
 
 

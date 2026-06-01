@@ -88,6 +88,24 @@ Phase 5 scope currently includes:
 - Role-aware UI rendering for viewer vs operator/admin actions
 - Minimal UI API routes for alerts, AI recommendations, feedback, and chat
 
+
+Phase 6 scope currently includes:
+
+- Background job queue for non-blocking OpenNMS ingestion and AI processing
+- Retry with exponential backoff and simple job rate limiting
+- Lightweight in-memory TTL cache for active alerts and AI recommendations
+- Admin operations endpoints for metrics and queue status/enqueue actions
+- JSON structured logging with request IDs and API latency metrics
+- Performance indexes for alert timestamp/severity queries and operator/circle/server filters
+- Centralized production settings for cache TTLs, ingestion intervals, queue limits, and AI batch size
+
+Operational endpoints:
+
+- `GET /api/v1/metrics`
+- `GET /api/v1/ops/jobs`
+- `POST /api/v1/ops/ingestion/enqueue`
+- `POST /api/v1/ops/ai/enqueue`
+
 Run tests:
 
 ```bash
