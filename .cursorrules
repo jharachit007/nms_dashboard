@@ -1,0 +1,238 @@
+You are working on an OpenNMS AI Monitoring MCP (Minimum Credible Product).
+
+This system integrates with an existing OpenNMS infrastructure using XML-based REST APIs and builds an AI-assisted NOC operations platform.
+
+────────────────────────────────────────
+🎯 CORE OBJECTIVE
+────────────────────────────────────────
+Build a production-aligned MCP that:
+- Ingests OpenNMS alarms, nodes, events, outages
+- Stores all data in PostgreSQL (raw + normalized)
+- Generates AI-based troubleshooting suggestions for CRITICAL alerts
+- Collects operator feedback for continuous improvement
+- Provides a chat interface for incident follow-ups
+- Supports LDAP authentication and role-based access
+
+Primary KPI:
+→ Reduce MTTR (Mean Time To Resolution)
+
+────────────────────────────────────────
+⚙️ TECH STACK (MANDATORY)
+────────────────────────────────────────
+Backend:
+- Python 3.12+
+- FastAPI
+- SQLAlchemy (ORM)
+- Alembic (migrations)
+- PostgreSQL
+- lxml / xml.etree for XML parsing
+- ldap3 (LDAP authentication)
+- requests (OpenNMS API calls)
+
+Frontend:
+- HTML5
+- CSS3
+- Vanilla JavaScript ONLY
+- No frameworks (React/Vue/Angular prohibited)
+
+LLM Layer:
+- Primary: Ollama (local LLM)
+- Optional: OpenAI / Anthropic / OpenRouter
+- Must support provider abstraction layer
+
+Infrastructure:
+- Bare metal Linux
+- Internal deployment only
+- No Kubernetes in MCP phase
+
+────────────────────────────────────────
+🧠 ARCHITECTURE RULES
+────────────────────────────────────────
+1. Always design BEFORE coding
+2. Never assume OpenNMS returns JSON (it is XML)
+3. Always store:
+   - raw OpenNMS payload
+   - parsed normalized data
+
+4. Use service-layer architecture:
+   - API Layer (FastAPI routes)
+   - Service Layer (business logic)
+   - Repository Layer (DB access)
+   - Connector Layer (OpenNMS integration)
+
+5. Keep components loosely coupled
+
+6. MCP is NOT a toy system:
+   - design must support 2000+ servers
+
+────────────────────────────────────────
+📊 DATA RULES
+────────────────────────────────────────
+- Never discard OpenNMS fields
+- Always store raw XML in DB (or JSONB equivalent after conversion)
+- Use UPSERT for alerts and nodes (no duplicates allowed)
+- Maintain full alert lifecycle tracking:
+  - ACTIVE
+  - ACKNOWLEDGED
+  - RESOLVED
+  - CLEARED
+
+Node naming convention:
+{operator}-{circle}-{ip}-{server_type}
+
+Parse and store separately:
+- operator
+- circle
+- ip_address
+- server_type
+
+────────────────────────────────────────
+🤖 AI SYSTEM RULES
+────────────────────────────────────────
+AI is strictly ADVISORY ONLY.
+
+AI MUST:
+- Provide troubleshooting steps
+- Suggest possible causes
+- Summarize incident context
+- Provide confidence score (if possible)
+
+AI MUST NOT:
+- Execute commands
+- Modify infrastructure
+- Restart services
+- Take autonomous actions
+
+AI Processing Flow:
+1. Context Builder
+2. Event/Alert Summarizer
+3. Diagnostic Reasoning
+4. Recommendation Generator
+
+────────────────────────────────────────
+🔐 SECURITY RULES
+────────────────────────────────────────
+- LDAP authentication is mandatory
+- Role-based access control required:
+
+Roles:
+- noc-viewer (read-only)
+- noc-operator (acknowledge + feedback + chat)
+- noc-admin (full access)
+
+Data sanitization BEFORE LLM calls:
+- Remove IP addresses → [IP]
+- Remove emails → [EMAIL]
+- Remove secrets/tokens → [REDACTED]
+- Truncate large logs (max token budget enforced)
+
+Never send raw sensitive infrastructure data to LLM.
+
+────────────────────────────────────────
+🧾 DATABASE RULES
+────────────────────────────────────────
+PostgreSQL is the system of record.
+
+Must include tables for:
+- nodes
+- alerts
+- alert_history
+- feedback
+- chat_messages
+- llm_responses
+- audit_logs
+
+Rules:
+- Always use migrations (Alembic)
+- Always define indexes for query performance
+- Always support auditability
+
+────────────────────────────────────────
+🌐 OPENNMS INTEGRATION RULES
+────────────────────────────────────────
+- Use OpenNMS REST APIs (XML-based responses)
+- Use Basic Auth or configured auth method
+- Build dedicated connector layer:
+  - XML fetcher
+  - XML parser
+  - normalization engine
+
+Ingestion must:
+- handle retries
+- avoid duplicates
+- log every sync cycle
+- support incremental updates
+
+────────────────────────────────────────
+🧑‍💻 FRONTEND RULES
+────────────────────────────────────────
+- Must be extremely simple and fast
+- Must prioritize NOC usability over design aesthetics
+- Must minimize clicks during incidents
+
+Pages:
+- Login (LDAP)
+- Dashboard (critical alerts)
+- Alert details
+- Chat
+- Feedback panel
+
+UI rules:
+- Show only essential fields by default
+- Hide advanced metadata behind expandable sections
+
+────────────────────────────────────────
+📡 LOGGING & AUDIT RULES
+────────────────────────────────────────
+Log every important action:
+- user login
+- alert view
+- AI recommendation generation
+- feedback submission
+- chat interactions
+
+Logs must be immutable and queryable.
+
+────────────────────────────────────────
+⚡ PERFORMANCE RULES
+────────────────────────────────────────
+- Design for high-frequency ingestion (multiple servers)
+- Avoid blocking API calls
+- Use background tasks for ingestion if needed
+- Ensure DB queries are optimized
+
+────────────────────────────────────────
+📦 IMPLEMENTATION DISCIPLINE
+────────────────────────────────────────
+When implementing:
+
+1. Understand requirement fully
+2. Identify dependencies
+3. Design data flow
+4. Implement backend first
+5. Then DB
+6. Then AI layer
+7. Then frontend
+
+NEVER jump directly into UI without backend logic.
+
+────────────────────────────────────────
+🚫 ANTI-PATTERNS (STRICTLY FORBIDDEN)
+────────────────────────────────────────
+- No mock APIs in final code
+- No hardcoded secrets
+- No skipping sanitization
+- No direct LLM calls from controllers
+- No duplicate alert records
+- No business logic in frontend
+
+────────────────────────────────────────
+🎯 FINAL GOAL
+────────────────────────────────────────
+Build a clean MCP that:
+
+- Works reliably with OpenNMS
+- Assists NOC engineers during incidents
+- Reduces MTTR using AI guidance
+- Collects structured feedback
+- Is simple enough for real operator usage
